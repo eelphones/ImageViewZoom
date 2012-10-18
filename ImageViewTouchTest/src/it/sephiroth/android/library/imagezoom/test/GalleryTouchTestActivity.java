@@ -20,7 +20,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Gallery;
 import android.widget.ImageView;
 
-public class MainActivity extends Activity {
+public class GalleryTouchTestActivity extends Activity {
 
     private ArrayAdapter<ImageView> arrayAdapter;
 	private GalleryTouch gallery;
@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
 			int dataColumn = cursor.getColumnIndexOrThrow(MediaColumns.DATA);
 			String filePath = cursor.getString(dataColumn);
 			File file = new File(filePath);
-        	ImageViewTouch imageView = new ImageViewTouch(MainActivity.this);
+        	ImageViewTouch imageView = new ImageViewTouch(GalleryTouchTestActivity.this);
     		imageView.setLayoutParams(new Gallery.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
 			Options options = new Options();
 			options.inSampleSize = 2;
