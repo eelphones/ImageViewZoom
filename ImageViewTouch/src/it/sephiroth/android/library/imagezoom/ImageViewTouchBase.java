@@ -38,8 +38,7 @@ public class ImageViewTouchBase extends ImageView implements IDisposable {
 	protected final Matrix mDisplayMatrix = new Matrix();
 	protected final float[] mMatrixValues = new float[9];
 	protected int mThisWidth = -1, mThisHeight = -1;
-	protected boolean mFitToScreen = false;
-	final protected float MAX_ZOOM = 2.0f;
+	protected boolean mFitToScreen = true; // ALIK's change
 
 	protected RectF mBitmapRect = new RectF();
 	protected RectF mCenterRect = new RectF();
@@ -226,7 +225,7 @@ public class ImageViewTouchBase extends ImageView implements IDisposable {
 
 		float fw = (float) drawable.getIntrinsicWidth() / (float) mThisWidth;
 		float fh = (float) drawable.getIntrinsicHeight() / (float) mThisHeight;
-		float max = Math.max( fw, fh ) * 4;
+		float max = Math.max( fw, fh ) * 8;
 		return max;
 	}
 
@@ -290,11 +289,13 @@ public class ImageViewTouchBase extends ImageView implements IDisposable {
 		float w = bitmap.getIntrinsicWidth();
 		float h = bitmap.getIntrinsicHeight();
 		matrix.reset();
-		float widthScale = Math.min( viewWidth / w, MAX_ZOOM );
-		float heightScale = Math.min( viewHeight / h, MAX_ZOOM );
+		float widthScale = viewWidth / w;
+		float heightScale = viewHeight / h;
+//		float widthScale = Math.min( viewWidth / w, MAX_ZOOM );
+//		float heightScale = Math.min( viewHeight / h, MAX_ZOOM );
 		float scale = Math.min( widthScale, heightScale );
 		matrix.postScale( scale, scale );
-		matrix.postTranslate( ( viewWidth - w * scale ) / MAX_ZOOM, ( viewHeight - h * scale ) / MAX_ZOOM );
+		matrix.postTranslate( ( viewWidth - w * scale ) / 2, ( viewHeight - h * scale ) / 2 ); // Don't know why division in 2 works :(
 	}
 
 	protected float getValue( Matrix matrix, int whichValue ) {
@@ -403,16 +404,20 @@ public class ImageViewTouchBase extends ImageView implements IDisposable {
 
 	protected void onZoom( float scale ) {}
 
-	public void scrollBy( float x, float y ) {
-		panBy( x, y );
+	public boolean scrollBy( float x, float y ) {
+		return panBy( x, y );
 	}
 
-	protected void panBy( double dx, double dy ) {
+	protected boolean panBy( double dx, double dy ) {
 		RectF rect = getBitmapRect();
 		mScrollRect.set( (float) dx, (float) dy, 0, 0 );
 		updateRect( rect, mScrollRect );
+		if (mScrollRect.left == 0f && mScrollRect.right == 0) {
+			return false;
+		}
 		postTranslate( mScrollRect.left, mScrollRect.top );
 		center( true, true );
+		return true;
 	}
 
 	protected void updateRect( RectF bitmapRect, RectF scrollRect ) {
@@ -463,7 +468,6 @@ public class ImageViewTouchBase extends ImageView implements IDisposable {
 		final float incrementPerMs = ( scale - getScale() ) / durationMs;
 		final float oldScale = getScale();
 		mHandler.post( new Runnable() {
-
 			@Override
 			public void run() {
 				long now = System.currentTimeMillis();
@@ -484,3 +488,4 @@ public class ImageViewTouchBase extends ImageView implements IDisposable {
 		clear();
 	}
 }
+

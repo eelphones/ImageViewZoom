@@ -2,8 +2,6 @@ package it.sephiroth.android.library.imagezoom;
 
 import android.content.Context;
 import android.graphics.Matrix;
-import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -16,7 +14,6 @@ import android.view.ViewConfiguration;
 
 public class ImageViewTouch extends ImageViewTouchBase {
 
-	private static final float SCROLL_DELTA_THRESHOLD = 1.0f;
 	static final float MIN_ZOOM = 0.9f;
 	protected ScaleGestureDetector mScaleDetector;
 	protected GestureDetector mGestureDetector;
@@ -30,7 +27,9 @@ public class ImageViewTouch extends ImageViewTouchBase {
 	protected boolean mScaleEnabled = true;
 	protected boolean mScrollEnabled = true;
 
-    private OnImageViewTouchDoubleTapListener doubleTapListener;
+	public ImageViewTouch( Context context) {
+		super( context);
+	}
 
 	public ImageViewTouch( Context context, AttributeSet attrs ) {
 		super( context, attrs );
@@ -50,11 +49,7 @@ public class ImageViewTouch extends ImageViewTouchBase {
 		mDoubleTapDirection = 1;
 	}
 
-    public void setDoubleTapListener( OnImageViewTouchDoubleTapListener doubleTapListener ){
-        this.doubleTapListener = doubleTapListener;
-    }
-
-	public void setDoubleTapToZoomEnabled( boolean value ) {
+	public void setDoubleTapEnabled( boolean value ) {
 		mDoubleTapToZoomEnabled = value;
 	}
 
@@ -90,22 +85,25 @@ public class ImageViewTouch extends ImageViewTouchBase {
 	@Override
 	protected void _setImageDrawable( final Drawable drawable, final boolean reset, final Matrix initial_matrix, final float maxZoom ) {
 		super._setImageDrawable( drawable, reset, initial_matrix, maxZoom );
-		mScaleFactor = getMaxZoom() / 3;
+		mScaleFactor = getMaxZoom() / 4f;
 	}
 
 	@Override
 	public boolean onTouchEvent( MotionEvent event ) {
 		mScaleDetector.onTouchEvent( event );
-		if ( !mScaleDetector.isInProgress() ) mGestureDetector.onTouchEvent( event );
-		int action = event.getAction();
-		switch ( action & MotionEvent.ACTION_MASK ) {
-			case MotionEvent.ACTION_UP:
-				if ( getScale() < 1f ) {
-					zoomTo( 1f, 50 );
-				}
-				break;
+		if ( mScaleDetector.isInProgress() ) {
+			return true;
 		}
-		return true;
+		boolean handled = mGestureDetector.onTouchEvent( event );
+
+		if ( event.getActionMasked() == MotionEvent.ACTION_UP ) {
+			if ( getScale() < 1f ) {
+				zoomTo( 1f, 50 );
+				return true;
+			}
+		}
+
+		return handled;
 	}
 
 	@Override
@@ -116,10 +114,10 @@ public class ImageViewTouch extends ImageViewTouchBase {
 
 	protected float onDoubleTapPost( float scale, float maxZoom ) {
 		if ( mDoubleTapDirection == 1 ) {
+			mDoubleTapDirection = -1;
 			if ( ( scale + ( mScaleFactor * 2 ) ) <= maxZoom ) {
 				return scale + mScaleFactor;
 			} else {
-				mDoubleTapDirection = -1;
 				return maxZoom;
 			}
 		} else {
@@ -127,37 +125,13 @@ public class ImageViewTouch extends ImageViewTouchBase {
 			return 1f;
 		}
 	}
-	
-	/**
-	 * Determines whether this ImageViewTouch can be scrolled.
-	 * @param direction
-	 * 				- positive direction value means scroll from right to left, 
-	 * 				negative value means scroll from left to right
-	 * 
-	 * @return true if there is some more place to scroll, false - otherwise.
-	 */
-	public boolean canScroll(int direction) {
-		RectF bitmapRect = getBitmapRect();
-		updateRect(bitmapRect, mScrollRect);
-		Rect imageViewRect = new Rect();
-		getGlobalVisibleRect(imageViewRect);
-		
-		if (bitmapRect.right >= imageViewRect.right) {
-			if (direction < 0) {
-				return Math.abs(bitmapRect.right - imageViewRect.right) > SCROLL_DELTA_THRESHOLD;
-			}
-		}
-		
-		double bitmapScrollRectDelta = Math.abs(bitmapRect.left - mScrollRect.left);
-		return bitmapScrollRectDelta > SCROLL_DELTA_THRESHOLD;
-	}
-	
+
 	public class GestureListener extends GestureDetector.SimpleOnGestureListener {
 
 		@Override
 		public boolean onDoubleTap( MotionEvent e ) {
-			Log.i( LOG_TAG, "onDoubleTap. double tap enabled? " + mDoubleTapToZoomEnabled);
-			if (mDoubleTapToZoomEnabled) {
+			Log.i( LOG_TAG, "onDoubleTap. double tap enabled? " + mDoubleTapToZoomEnabled );
+			if ( mDoubleTapToZoomEnabled ) {
 				float scale = getScale();
 				float targetScale = scale;
 				targetScale = onDoubleTapPost( scale, getMaxZoom() );
@@ -165,13 +139,9 @@ public class ImageViewTouch extends ImageViewTouchBase {
 				mCurrentScaleFactor = targetScale;
 				zoomTo( targetScale, e.getX(), e.getY(), 200 );
 				invalidate();
-            }
-
-            if( null != doubleTapListener ){
-                doubleTapListener.onDoubleTap();
-            }
-
-			return super.onDoubleTap( e );
+				return true;
+			}
+			return false;
 		}
 
 		@Override
@@ -192,26 +162,27 @@ public class ImageViewTouch extends ImageViewTouchBase {
 			if ( e1.getPointerCount() > 1 || e2.getPointerCount() > 1 ) return false;
 			if ( mScaleDetector.isInProgress() ) return false;
 			if ( getScale() == 1f ) return false;
-			scrollBy( -distanceX, -distanceY );
+			if (!scrollBy( -distanceX, -distanceY )) return false;
 			invalidate();
-			return super.onScroll( e1, e2, distanceX, distanceY );
+			return true;
 		}
 
 		@Override
 		public boolean onFling( MotionEvent e1, MotionEvent e2, float velocityX, float velocityY ) {
+//			return false;
 			if ( !mScrollEnabled ) return false;
 
 			if ( e1.getPointerCount() > 1 || e2.getPointerCount() > 1 ) return false;
 			if ( mScaleDetector.isInProgress() ) return false;
 
-			float diffX = e2.getX() - e1.getX();
-			float diffY = e2.getY() - e1.getY();
-
 			if ( Math.abs( velocityX ) > 800 || Math.abs( velocityY ) > 800 ) {
+				float diffX = e2.getX() - e1.getX();
+				float diffY = e2.getY() - e1.getY();
 				scrollBy( diffX / 2, diffY / 2, 300 );
 				invalidate();
+				return true;
 			}
-			return super.onFling( e1, e2, velocityX, velocityY );
+			return false;
 		}
 	}
 
@@ -233,8 +204,5 @@ public class ImageViewTouch extends ImageViewTouchBase {
 			return false;
 		}
 	}
-
-    public interface OnImageViewTouchDoubleTapListener {
-        void onDoubleTap();
-    }
 }
+
