@@ -1,11 +1,22 @@
 package it.sephiroth.android.library.imagezoom;
 
 import android.content.Context;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Gallery;
 
 public class GalleryTouch extends Gallery {
+	
+	public GalleryTouch(Context context, AttributeSet attrs) {
+		super(context, attrs);
+	}
+
+	public GalleryTouch(Context context, AttributeSet attrs, int defStyle) {
+		super(context, attrs, defStyle);
+	}
+
 	public GalleryTouch(Context context) {
 		super(context);
 	}
@@ -34,7 +45,14 @@ public class GalleryTouch extends Gallery {
 //		if (gallery.getSelectedItemPosition() == movedItemIndex && !inMove) {
 //		if (!inGallery && gallery.getSelectedItemPosition() == movedItemIndex) {
 		if (getSelectedItemPosition() == movedItemIndex) {
-			ImageViewTouch imageViewTouch = (ImageViewTouch) getSelectedItem();
+			int imageViewTouchId = getImageViewTouchId();
+			View selectedView = getSelectedView();
+			ImageViewTouch imageViewTouch;
+			if (imageViewTouchId == 0) {
+				imageViewTouch = (ImageViewTouch) selectedView;
+			}else {
+				imageViewTouch = (ImageViewTouch) selectedView.findViewById(imageViewTouchId);
+			}
 			boolean handled = imageViewTouch.onTouchEvent(event);
 			Log.d("", "handled: " + handled);
 			if (handled) {
@@ -43,7 +61,7 @@ public class GalleryTouch extends Gallery {
 //				this.handled = true;
 
 				// Cancel the the gallery action if the ImgeViewTouch is working
-				event.setAction(MotionEvent.ACTION_UP);
+//				event.setAction(MotionEvent.ACTION_UP);
 				super.onTouchEvent(event);
 				return true;
 			}
@@ -55,5 +73,9 @@ public class GalleryTouch extends Gallery {
 //		}
 //    	return false;
 		return super.onTouchEvent(event);
+	}
+
+	protected int getImageViewTouchId() {
+		return 0;
 	}
 }
