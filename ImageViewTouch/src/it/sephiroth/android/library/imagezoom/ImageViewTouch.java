@@ -171,7 +171,7 @@ public class ImageViewTouch extends ImageViewTouchBase {
 		public boolean onFling( MotionEvent e1, MotionEvent e2, float velocityX, float velocityY ) {
 //			return false;
 			if ( !mScrollEnabled ) return false;
-
+			if (e1 == null || e2 == null) return false;
 			if ( e1.getPointerCount() > 1 || e2.getPointerCount() > 1 ) return false;
 			if ( mScaleDetector.isInProgress() ) return false;
 
